@@ -1,103 +1,181 @@
-import Image from "next/image";
+"use client"; // Mark this as a Client Component
+import { useState } from "react";
+import Navbar from "../components/Navbar";
+import { Favorite } from "../lib/types";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [inputType, setInputType] = useState<"text" | "image">("text"); // Toggle between text and image
+  const [ingredients, setIngredients] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [recipe, setRecipe] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImage(e.target.files[0]);
+    }
+  };
+
+  const saveToFavorites = async () => {
+    if (!recipe) return;
+
+    const response = await fetch("/api/favorites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: "user-id", recipe }), // Replace 'user-id' with actual user ID from Clerk
+    });
+    const data = await response.json();
+    alert(data.message || data.error);
+  };
+
+  const generateRecipe = async () => {
+    setIsLoading(true);
+    try {
+      let response;
+      if (inputType === "text") {
+        // Generate recipe from text
+        response = await fetch("/api/generate-recipe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ingredients }),
+        });
+        const data = await response.json();
+        setRecipe(data.recipe);
+        await fetch("/api/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recipe: data.recipe }),
+        });
+      } else {
+        // Generate recipe from image
+        const reader = new FileReader();
+        reader.readAsDataURL(image!);
+        reader.onload = async () => {
+          const base64Image = reader.result as string;
+
+          // Remove the Base64 prefix (e.g., "data:image/png;base64,")
+          const base64Data = base64Image.split(",")[1];
+
+          // Call the API to generate recipe
+          response = await fetch("/api/image-to-recipe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              imageUrl: `data:image/jpeg;base64,${base64Data}`,
+            }),
+          });
+
+          const data = await response!.json();
+          setRecipe(data.recipe);
+          await fetch("/api/history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recipe: data.recipe }),
+          });
+        };
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Failed to generate recipe. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  return (
+    <div>
+      <Navbar />
+      <div className="container mx-auto p-4">
+        {/* Hero Section */}
+
+        <div className="text-center py-20 animate-fadeIn">
+          <h1 className="text-5xl font-bold text-pink-800 mb-4">
+            🍽️ Generate Delicious Recipes with AI
+          </h1>
+          <p className="text-pink-700 text-lg mb-8">
+            Enter ingredients or upload an image, and let AI create a recipe for
+            you!
+          </p>
+
+          {/* Toggle Between Text and Image Input */}
+          <div className="flex justify-center space-x-4 mb-8">
+            <button
+              className={`px-4 py-2 rounded-lg cursor-pointer ${
+                inputType === "text"
+                  ? "bg-pink-500 text-white"
+                  : "bg-pink-100 text-pink-800"
+              }`}
+              onClick={() => setInputType("text")}
+            >
+              Enter Ingredients
+            </button>
+            <button
+              className={`px-4 py-2 rounded-lg cursor-pointer ${
+                inputType === "image"
+                  ? "bg-pink-500 text-white"
+                  : "bg-pink-100 text-pink-800"
+              }`}
+              onClick={() => setInputType("image")}
+            >
+              Upload Image
+            </button>
+          </div>
+
+          {/* Input Section */}
+          <div className="max-w-lg mx-auto">
+            {inputType === "text" ? (
+              <textarea
+                className="w-full p-4 border-2 border-pink-300 rounded-lg mb-4 focus:outline-none focus:border-pink-500"
+                placeholder="🍅 Enter ingredients (e.g., tomatoes, cheese, pasta)..."
+                rows={4}
+                value={ingredients}
+                onChange={(e) => setIngredients(e.target.value)}
+              />
+            ) : (
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="w-full p-4 border-2 border-pink-300 rounded-lg mb-4 focus:outline-none focus:border-pink-500"
+              />
+            )}
+            <button
+              className="btn-pink w-full flex items-center justify-center cursor-pointer"
+              onClick={generateRecipe}
+              disabled={
+                isLoading ||
+                (inputType === "text" && !ingredients.trim()) ||
+                (inputType === "image" && !image)
+              }
+            >
+              {isLoading ? <div className="spinner"></div> : "Generate Recipe"}
+            </button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Recipe Display Section */}
+        {recipe && (
+          <div className="card p-6 mt-12 animate-fadeIn">
+            <h2 className="text-2xl font-bold text-pink-800 mb-4">
+              Generated Recipe
+            </h2>
+            <pre className="text-pink-700 whitespace-pre-wrap">{recipe}</pre>
+            <div className="flex space-x-4 mt-4">
+              <button
+                className="btn-pink"
+                onClick={generateRecipe}
+              >
+                🔄 Regenerate Recipe
+              </button>
+              <button
+                className="btn-pink"
+                onClick={saveToFavorites}
+              >
+                💖 Save to Favorites
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
