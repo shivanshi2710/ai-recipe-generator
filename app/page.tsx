@@ -161,13 +161,13 @@ export default function Home() {
             <pre className="text-pink-700 whitespace-pre-wrap">{recipe}</pre>
             <div className="flex space-x-4 mt-4">
               <button
-                className="btn-pink"
+                className="btn-pink cursor-pointer"
                 onClick={generateRecipe}
               >
                 🔄 Regenerate Recipe
               </button>
               <button
-                className="btn-pink"
+                className="btn-pink cursor-pointer"
                 onClick={saveToFavorites}
               >
                 💖 Save to Favorites
