@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import { useUser } from "@clerk/nextjs";
+import Markdown from "react-markdown";
 
 export default function Home() {
   const { user, isSignedIn } = useUser();
@@ -24,9 +25,9 @@ export default function Home() {
       const response = await fetch("/api/favorites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          userId: user.id, 
-          recipe 
+        body: JSON.stringify({
+          userId: user.id,
+          recipe,
         }),
       });
       const data = await response.json();
@@ -50,9 +51,9 @@ export default function Home() {
         response = await fetch("/api/generate-recipe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             ingredients,
-            userId: user.id 
+            userId: user.id,
           }),
         });
         const data = await response.json();
@@ -68,13 +69,13 @@ export default function Home() {
         reader.onload = async () => {
           const base64Image = reader.result as string;
           const base64Data = base64Image.split(",")[1];
-          
+
           response = await fetch("/api/image-to-recipe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               imageUrl: `data:image/jpeg;base64,${base64Data}`,
-              userId: user.id
+              userId: user.id,
             }),
           });
           const data = await response!.json();
@@ -82,9 +83,9 @@ export default function Home() {
           await fetch("/api/history", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               userId: user.id,
-              recipe: data.recipe 
+              recipe: data.recipe,
             }),
           });
         };
@@ -97,6 +98,21 @@ export default function Home() {
       setIsLoading(false);
     }
   };
+
+const formatRecipeLinks = (text: string) => {
+  return text.replace(
+    /\[(https?:\/\/[^\]]+)\]/g, 
+    (match, url) => {
+      // Extract the search query from URL if available
+      const queryMatch = url.match(/[?&]q=([^&]+)/);
+      const linkText = queryMatch 
+        ? `${decodeURIComponent(queryMatch[1])} (Buy Online)` 
+        : 'Buy Ingredients';
+      
+      return `[${linkText}](${url})`;
+    }
+  );
+};
 
   if (!isSignedIn) {
     return (
@@ -184,7 +200,22 @@ export default function Home() {
             <h2 className="text-2xl font-bold text-pink-800 mb-4">
               Generated Recipe
             </h2>
-            <pre className="text-pink-700 whitespace-pre-wrap">{recipe}</pre>
+            <pre className="text-pink-700 whitespace-pre-wrap">
+              <Markdown
+                components={{
+                  a: ({ node, ...props }) => (
+                    <a
+                      {...props}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-pink-600 hover:underline"
+                    />
+                  ),
+                }}
+              >
+                {formatRecipeLinks(recipe)}
+              </Markdown>
+            </pre>
             <div className="flex space-x-4 mt-4">
               <button
                 className="btn-pink cursor-pointer"
