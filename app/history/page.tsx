@@ -1,32 +1,40 @@
-'use client'; // Mark this as a Client Component
-import { useEffect, useState } from 'react';
-import Navbar from '../../components/Navbar';
+"use client"; // Mark this as a Client Component
+import { useEffect, useState } from "react";
+import Navbar from "../../components/Navbar";
+import { useUser } from "@clerk/nextjs";
 
 export default function History() {
-  const [history, setHistory] = useState<{ recipe: string; timestamp: string }[]>([]);
+  const { user, isSignedIn } = useUser();
+  const [history, setHistory] = useState<
+    { recipe: string; timestamp: string }[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await fetch('/api/history');
-        const data = await response.json();
-        setHistory(data);
+        if (user?.id) {
+          const response = await fetch(`/api/history?userId=${user?.id}`);
+          const data = await response.json();
+          setHistory(data);
+        }
       } catch (error) {
-        console.error('Error fetching history:', error);
+        console.error("Error fetching history:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchHistory();
-  }, []);
+  }, [user?.id]);
 
   return (
     <div>
       <Navbar />
       <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold text-pink-800 mb-8">Recipe History</h1>
+        <h1 className="text-3xl font-bold text-pink-800 mb-8">
+          Recipe History
+        </h1>
         {isLoading ? (
           <div className="text-center">
             <div className="spinner"></div>
@@ -39,7 +47,9 @@ export default function History() {
                 <h2 className="text-xl font-bold text-pink-800 mb-2">
                   Recipe #{index + 1}
                 </h2>
-                <pre className="text-pink-700 whitespace-pre-wrap">{item.recipe}</pre>
+                <pre className="text-pink-700 whitespace-pre-wrap">
+                  {item.recipe}
+                </pre>
                 <p className="text-pink-700 mt-2">
                   🕒 {new Date(item.timestamp).toLocaleString()}
                 </p>
@@ -47,7 +57,9 @@ export default function History() {
             ))}
           </div>
         ) : (
-          <p className="text-pink-700">No history yet. Generate some recipes to see them here!</p>
+          <p className="text-pink-700">
+            No history yet. Generate some recipes to see them here!
+          </p>
         )}
       </div>
     </div>

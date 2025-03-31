@@ -3,8 +3,17 @@ import { favoritesCollection } from '@/lib/db';
 import { ObjectId } from 'mongodb';
 
 export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const userId = searchParams.get('userId');
+
   try {
-    const favorites = await favoritesCollection.find().toArray();
+    let favorites
+    if(userId){
+      favorites = await favoritesCollection.find({userId: userId}).toArray();
+    } else{
+      favorites = await favoritesCollection.find({}).toArray()
+    }
+
     return NextResponse.json(favorites);
   } catch (error) {
     console.error('Error fetching favorites:', error);
@@ -13,10 +22,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { recipe } = await request.json();
+  const { recipe, userId } = await request.json();
 
   try {
-    const result = await favoritesCollection.insertOne({ recipe, likes: 0 });
+    const result = await favoritesCollection.insertOne({ userId, recipe, likes: 0 });
     return NextResponse.json({ _id: result.insertedId, recipe, likes: 0 });
   } catch (error) {
     console.error('Error saving favorite:', error);
@@ -40,11 +49,11 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const { id, clearAll } = await request.json();
+  const { id, clearAll, userId } = await request.json();
 
   try {
     if (clearAll) {
-      await favoritesCollection.deleteMany({});
+      await favoritesCollection.deleteMany({userId: userId});
       return NextResponse.json({ message: 'All favorites cleared' });
     } else {
       await favoritesCollection.deleteOne({ _id: new ObjectId(id) });

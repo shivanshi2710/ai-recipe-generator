@@ -13,7 +13,7 @@ export default function Leaderboard() {
         const response = await fetch('/api/favorites');
         const data = await response.json();
         // Sort favorites by likes in descending order
-        const sortedFavorites = data.sort((a: Favorite, b: Favorite) => b.likes - a.likes);
+        const sortedFavorites = data?.sort((a: Favorite, b: Favorite) => b.likes - a.likes);
         setFavorites(sortedFavorites);
       } catch (error) {
         console.error('Error fetching favorites:', error);

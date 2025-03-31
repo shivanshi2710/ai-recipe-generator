@@ -1,4 +1,10 @@
+"use client";
+
+import { useUser, UserButton } from "@clerk/nextjs";
+
 export default function Navbar() {
+  const { user, isSignedIn } = useUser();
+
   return (
     <nav className="p-4 text-white shadow-lg bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 animate-gradient-x">
       <div className="container mx-auto flex justify-between items-center">
@@ -24,6 +30,14 @@ export default function Navbar() {
             <span className="hover:text-pink-200 transition-colors">Leaderboard</span>
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-pink-200 transition-all group-hover:w-full"></span>
           </a>
+
+          {/* Show user info if signed in */}
+          {isSignedIn&& 
+            <div className="flex items-center space-x-3">
+              <span className="text-sm font-semibold">{user.fullName}</span>
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          }
         </div>
       </div>
     </nav>

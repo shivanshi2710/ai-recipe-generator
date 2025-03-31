@@ -10,13 +10,13 @@ const client = new MongoClient(uri);
 const db = client.db('ai-recipe-generator');
 
 export const favoritesCollection = db.collection<{
-  _id: string;
+  userId: string;
   recipe: string;
   likes: number;
 }>('favorites');
 
 export const historyCollection = db.collection<{
-  _id: string;
+  userId: string;
   recipe: string;
   timestamp: Date;
 }>('history');

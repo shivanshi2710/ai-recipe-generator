@@ -8,14 +8,11 @@ export async function POST(request: Request) {
   const { ingredients } = await request.json();
 
   try {
-    const prompt = `Generate a detailed recipe using the following ingredients: ${ingredients}. Include the recipe name, ingredients, and step-by-step instructions.`;
-        // For each ingredient, provide an Amazon purchase link and a Flipkart purchase link. 
-    // Format the response as follows:
-    // - Recipe: [generated recipe steps]
-    // - Purchase Links:
-    //   - [Ingredient 1]: Amazon - [link], Flipkart - [link]
-    //   - [Ingredient 2]: Amazon - [link], Flipkart - [link]
-    //   - ...`;
+    const prompt = `Generate a detailed recipe using: ${ingredients}. 
+        For each main ingredient, provide:
+        1. Blinkit purchase link (format exactly as "Blinkit: [URL]")
+        Place links after the recipe instructions, under a "Purchase Links:" heading.`;
+ ;
 
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",

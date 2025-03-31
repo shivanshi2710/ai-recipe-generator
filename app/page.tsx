@@ -1,10 +1,11 @@
-"use client"; // Mark this as a Client Component
+"use client";
 import { useState } from "react";
 import Navbar from "../components/Navbar";
-import { Favorite } from "../lib/types";
+import { useUser } from "@clerk/nextjs";
 
 export default function Home() {
-  const [inputType, setInputType] = useState<"text" | "image">("text"); // Toggle between text and image
+  const { user, isSignedIn } = useUser();
+  const [inputType, setInputType] = useState<"text" | "image">("text");
   const [ingredients, setIngredients] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [recipe, setRecipe] = useState<string | null>(null);
@@ -17,27 +18,42 @@ export default function Home() {
   };
 
   const saveToFavorites = async () => {
-    if (!recipe) return;
+    if (!recipe || !user?.id) return;
 
-    const response = await fetch("/api/favorites", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: "user-id", recipe }), // Replace 'user-id' with actual user ID from Clerk
-    });
-    const data = await response.json();
-    alert(data.message || data.error);
+    try {
+      const response = await fetch("/api/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          userId: user.id, 
+          recipe 
+        }),
+      });
+      const data = await response.json();
+      alert(data.message || "Saved to favorites!");
+    } catch (error) {
+      console.error("Error saving favorite:", error);
+      alert("Failed to save to favorites");
+    }
   };
 
   const generateRecipe = async () => {
+    if (!user?.id) {
+      alert("Please sign in to generate recipes");
+      return;
+    }
+
     setIsLoading(true);
     try {
       let response;
       if (inputType === "text") {
-        // Generate recipe from text
         response = await fetch("/api/generate-recipe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ingredients }),
+          body: JSON.stringify({ 
+            ingredients,
+            userId: user.id 
+          }),
         });
         const data = await response.json();
         setRecipe(data.recipe);
@@ -47,40 +63,50 @@ export default function Home() {
           body: JSON.stringify({ recipe: data.recipe }),
         });
       } else {
-        // Generate recipe from image
         const reader = new FileReader();
         reader.readAsDataURL(image!);
         reader.onload = async () => {
           const base64Image = reader.result as string;
-
-          // Remove the Base64 prefix (e.g., "data:image/png;base64,")
           const base64Data = base64Image.split(",")[1];
-
-          // Call the API to generate recipe
+          
           response = await fetch("/api/image-to-recipe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               imageUrl: `data:image/jpeg;base64,${base64Data}`,
+              userId: user.id
             }),
           });
-
           const data = await response!.json();
-          setRecipe(data.recipe);
+          setRecipe(data?.recipe);
           await fetch("/api/history", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ recipe: data.recipe }),
+            body: JSON.stringify({ 
+              userId: user.id,
+              recipe: data.recipe 
+            }),
           });
         };
       }
+
+      // Save to history
     } catch (error) {
       console.error("Error:", error);
-      alert("Failed to generate recipe. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (!isSignedIn) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <div className="spinner"></div>
+        <p className="text-pink-700">Loading your account...</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <Navbar />
@@ -124,7 +150,7 @@ export default function Home() {
           <div className="max-w-lg mx-auto">
             {inputType === "text" ? (
               <textarea
-                className="w-full p-4 border-2 border-pink-300 rounded-lg mb-4 focus:outline-none focus:border-pink-500"
+                className="w-full p-4 border-2 border-pink-300 rounded-lg mb-4 focus:outline-none focus:border-pink-500 text-pink-800"
                 placeholder="🍅 Enter ingredients (e.g., tomatoes, cheese, pasta)..."
                 rows={4}
                 value={ingredients}
@@ -135,7 +161,7 @@ export default function Home() {
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
-                className="w-full p-4 border-2 border-pink-300 rounded-lg mb-4 focus:outline-none focus:border-pink-500"
+                className="w-full p-4 border-2 border-pink-300 rounded-lg mb-4 focus:outline-none focus:border-pink-500 cursor-pointer text-pink-800"
               />
             )}
             <button
