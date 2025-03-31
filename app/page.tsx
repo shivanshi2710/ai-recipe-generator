@@ -60,7 +60,7 @@ export default function Home() {
         await fetch("/api/history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ recipe: data.recipe }),
+          body: JSON.stringify({ userId: user.id, recipe: data.recipe }),
         });
       } else {
         const reader = new FileReader();

@@ -1,4 +1,4 @@
-"use client"; // Mark this as a Client Component
+"use client";
 import { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import { Favorite } from "../../lib/types";
@@ -35,7 +35,6 @@ export default function Favorites() {
       });
       const data = await response.json();
 
-      // Update the likes count in the UI
       const updatedFavorites = favorites.map((favorite) =>
         favorite._id === id
           ? { ...favorite, likes: favorite.likes + 1 }
@@ -57,7 +56,6 @@ export default function Favorites() {
       const data = await response.json();
       alert(data.message || data.error);
 
-      // Refresh the favorites list
       const updatedFavorites = favorites.filter(
         (favorite) => favorite._id !== id
       );
@@ -101,10 +99,16 @@ export default function Favorites() {
             </button>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {favorites.map((favorite) => (
-                <div key={favorite._id} className="card p-6">
-                  <pre className="text-pink-700 whitespace-pre-wrap">
-                    <Markdown>{favorite.recipe}</Markdown>
-                  </pre>
+                <div 
+                  key={favorite._id} 
+                  className="card p-6 flex flex-col"
+                  style={{ height: "400px" }} // Fixed height
+                >
+                  <div className="overflow-y-auto flex-grow"> {/* Scrollable content */}
+                    <pre className="text-pink-700 whitespace-pre-wrap">
+                      <Markdown>{favorite.recipe}</Markdown>
+                    </pre>
+                  </div>
                   <div className="flex items-center justify-between mt-4">
                     <button
                       className="btn-pink cursor-pointer"
